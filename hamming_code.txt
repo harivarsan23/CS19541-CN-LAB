@@ -1,0 +1,117 @@
+
+sender.c
+ #include <stdio.h>
+#include <math.h>
+
+int main() {
+    int k, r = 0, size;
+    printf("Enter the size of message: ");
+    scanf("%d", &k);
+
+    // Calculate the number of redundant bits
+    while (pow(2, r) < k + r + 1) {
+        r++;
+    }
+    size = k + r;
+
+    // Create the message array
+    int msg[size];
+
+    // Initialize the message with 0s
+    for (int i = 0; i < size; i++) {
+        msg[i] = 0;
+    }
+
+    // Get the message bits at non-redundant positions
+    printf("Enter the message bits: ");
+    int j = 0;
+    for (int i = 0; i < size; i++) {
+        if (i == pow(2, j) - 1) {
+            j++;
+        } else {
+            scanf("%d", &msg[i]);
+        }
+    }
+    // Calculate redundant bit values using XOR
+    for (int i = 0; i < r; i++) {
+        int pos = pow(2, i) - 1; // Position of the redundant bit
+        int parity = 0;
+        // Calculate the range of data bits covered by this redundant bit
+        int start = pos + 1;
+        int end = start + pow(2, i) - 1;
+        // Calculate parity using XOR
+        for (int j = start; j <= end && j < size; j++) {
+            parity ^= msg[j];
+        }
+        msg[pos] = parity;
+    }
+    // Print the full message with redundant bits
+    printf("Message with redundant bits: ");
+    for (int i = 0; i < size; i++) {
+        printf("%d ", msg[i]);
+    }
+    return 0;
+}
+
+
+input:7
+1001101(enter from backwards)
+output:10011100101
+
+ receiver.c
+
+#include <stdio.h>
+#include <math.h>
+
+int main() {
+    int k, r = 0, size;
+    printf("Enter the size of message: ");
+    scanf("%d", &k);
+
+    // Calculate the number of redundant bits
+    while (pow(2, r) < k + r + 1) {
+        r++;
+    }
+    size = k + r;  // Total size including redundant bits
+
+    // Create the received message array
+    int msg[size];
+
+    // Get the received message bits including redundant bits
+    printf("Enter the received message bits (including redundant bits): ");
+    for (int i = 0; i < size; i++) {
+        scanf("%d", &msg[i]);
+    }
+
+    // Calculate the redundant bits from received message
+    int error_position = 0;  // To store error position in binary form
+    for (int i = 0; i < r; i++) {
+        int pos = (int)pow(2, i) - 1;  // Position of each redundant bit (0-indexed)
+        int parity = 0;
+
+        // Calculate parity by checking bits in Hamming code's specific pattern
+        for (int j = pos; j < size; j += (pos + 1) * 2) {
+            for (int k = j; k < j + pos + 1 && k < size; k++) {
+                parity ^= msg[k];
+            }
+        }
+
+        // If parity is not zero, there’s an error in that bit position
+        if (parity != 0) {
+            error_position += (pos + 1);  // Accumulate the position value in binary
+        }
+    }
+
+    // Print results
+    if (error_position == 0) {
+        printf("No error detected in the received message.\n");
+    } else {
+        printf("Error detected at position: %d (1-based index)\n", error_position);
+    }
+
+    return 0;
+}
+
+input:7
+10011100101(from backwards)
+output:no error
